@@ -3,6 +3,21 @@
 Notable changes to this service, newest first, per release. This file is written for whoever
 runs the service or integrates against it.
 
+## v0.2.0
+
+### Changed — the CSC signing flow is two flows
+
+`flow` on a new signing accepts `cscEidScan` (the eID card read by a phone) and `cscEidPlugin` (the card in
+a reader, through the provider's browser extension) in place of `csc`, which is now refused as invalid. An
+eParaksts Mobile login no longer permits either: the CSC flows authenticate with the eID card only.
+
+```http
+POST /api/v1/signings
+{ "flow": "cscEidScan", "documentId": "…", … }
+```
+
+Needs the database migration that knows the two names (the platform database's 2026-09-28 entry).
+
 ## v0.1.1
 
 ### Fixed — a version tag points at the signed image digest again

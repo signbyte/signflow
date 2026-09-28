@@ -13,7 +13,7 @@ func TestPermittedFlows(t *testing.T) {
 	cases := map[string][]string{
 		"webEid":          {"webEid"},
 		"eidScan":         {"eidScan"},
-		"eparakstsMobile": {"eparakstsMobile", "eparakstsMobileEseal", "csc"},
+		"eparakstsMobile": {"eparakstsMobile", "eparakstsMobileEseal"},
 		"":                nil,
 		"unknown":         nil,
 	}
@@ -43,12 +43,13 @@ func TestCheckBinding(t *testing.T) {
 		{"eidScan permits eidScan", "eidScan", "eidScan", false},
 		{"eparakstsMobile permits its personal flow", "eparakstsMobile", "eparakstsMobile", false},
 		{"eparakstsMobile permits the eSeal flow", "eparakstsMobile", "eparakstsMobileEseal", false},
-		{"eparakstsMobile permits csc", "eparakstsMobile", "csc", false},
 
 		{"webEid does not permit eidScan", "webEid", "eidScan", true},
 		{"eidScan does not permit webEid", "eidScan", "webEid", true},
 		{"eparakstsMobile does not permit webEid", "eparakstsMobile", "webEid", true},
-		{"webEid does not permit csc", "webEid", "csc", true},
+		{"eparakstsMobile does not permit cscEidScan", "eparakstsMobile", "cscEidScan", true},
+		{"eparakstsMobile does not permit cscEidPlugin", "eparakstsMobile", "cscEidPlugin", true},
+		{"the retired csc is permitted to nobody", "eparakstsMobile", "csc", true},
 
 		{"empty method fails closed", "", "webEid", true},
 		{"unknown method fails closed", "nope", "webEid", true},
