@@ -34,8 +34,8 @@ const (
 // archive-timestamp — operations whose upstream work legitimately runs tens of
 // seconds (a long-term-archival validation checks the archive-timestamp chain plus
 // long-term revocation material, ~16–40s observed; the provider's own upstream
-// hop is 30s with one retry, and the provider sometimes holds the first request of
-// a signing without answering). It must comfortably outlast that worst case —
+// hop is 30s with one retry, and the provider sometimes takes a minute to answer a
+// request of a signing). It must comfortably outlast that worst case —
 // the default service-call timeout is tuned for fast calls and abandons these
 // mid-flight while they go on to succeed.
 const slowOpTimeout = 90 * time.Second
