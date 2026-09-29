@@ -30,11 +30,12 @@ const (
 	scopeSignRead   = "signatures:read"
 )
 
-// slowOpTimeout is the per-call ceiling for validate and archive-timestamp —
-// operations whose upstream work legitimately runs tens of seconds (a
-// long-term-archival validation checks the archive-timestamp chain plus
+// slowOpTimeout is the per-call ceiling for starting a signing, validate and
+// archive-timestamp — operations whose upstream work legitimately runs tens of
+// seconds (a long-term-archival validation checks the archive-timestamp chain plus
 // long-term revocation material, ~16–40s observed; the provider's own upstream
-// hop is 30s with one retry). It must comfortably outlast that worst case —
+// hop is 30s with one retry, and the provider sometimes holds the first request of
+// a signing without answering). It must comfortably outlast that worst case —
 // the default service-call timeout is tuned for fast calls and abandons these
 // mid-flight while they go on to succeed.
 const slowOpTimeout = 90 * time.Second
@@ -187,7 +188,7 @@ func (s *Signer) Prepare(ctx context.Context, flow string, docs []PrepareDoc, op
 	url := s.baseURL + "/api/v1/signatures/prepare?flow=" + flow
 
 	var out PrepareResult
-	if err := doJSON(ctx, s.doer, "signer", s.audience, scopeSignCreate, http.MethodPost, url, body, "application/json", &out); err != nil {
+	if err := doJSONWithin(ctx, s.doer, slowOpTimeout, "signer", s.audience, scopeSignCreate, http.MethodPost, url, body, "application/json", &out); err != nil {
 		return nil, err
 	}
 
@@ -221,7 +222,7 @@ func (s *Signer) PrepareWithFile(ctx context.Context, flow string, docs []Prepar
 	url := s.baseURL + "/api/v1/signatures/prepare?flow=" + flow
 
 	var out PrepareResult
-	if err := doJSON(ctx, s.doer, "signer", s.audience, scopeSignCreate, http.MethodPost, url, body, contentType, &out); err != nil {
+	if err := doJSONWithin(ctx, s.doer, slowOpTimeout, "signer", s.audience, scopeSignCreate, http.MethodPost, url, body, contentType, &out); err != nil {
 		return nil, err
 	}
 

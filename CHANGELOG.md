@@ -5,6 +5,13 @@ runs the service or integrates against it.
 
 ## v0.2.0
 
+### Changed — starting a signing waits for the signing service up to 90 s
+
+Starting a signing now waits up to **90 s** for the signing service to begin the job, the same ceiling
+validation and archive-timestamping already have; it used to give up after the default 15 s. The provider
+behind the signing service sometimes holds the first request of a signing without answering, and the
+signing service then began the job after signflow had already reported a failure. Nothing to configure.
+
 ### Changed — each card login may also sign through CSC, reading the card the same way
 
 A Web eID login now permits `cscEidPlugin` besides `webEid`, and an eID Scan login permits `cscEidScan`

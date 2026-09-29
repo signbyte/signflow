@@ -296,6 +296,9 @@ func TestSignerPrepareBuildsURLAndBody(t *testing.T) {
 	qt.Assert(t, qt.Equals(d.last().url, "http://signer/api/v1/signatures/prepare?flow=eparakstsMobile"))
 	qt.Assert(t, qt.Equals(d.last().scope, scopeSignCreate))
 	qt.Assert(t, qt.StringContains(string(d.last().body), `"postAuthRedirect":"https://x"`))
+	// Starting a signing may wait on a provider that holds its first request: it gets
+	// the slow-operation ceiling, not the default one.
+	qt.Assert(t, qt.Equals(d.last().timeout, slowOpTimeout))
 }
 
 func TestSignerPrepareWithFileBuildsMultipartMetadata(t *testing.T) {
@@ -306,6 +309,7 @@ func TestSignerPrepareWithFileBuildsMultipartMetadata(t *testing.T) {
 	_, err := s.PrepareWithFile(context.Background(), "webEid", []PrepareDoc{{DocumentID: "doc-1", FileRef: "doc-1"}}, files, PrepareOptions{})
 	qt.Assert(t, qt.IsNil(err))
 	qt.Assert(t, qt.Equals(d.last().url, "http://signer/api/v1/signatures/prepare?flow=webEid"))
+	qt.Assert(t, qt.Equals(d.last().timeout, slowOpTimeout))
 
 	mediaType, params, err := mime.ParseMediaType(d.last().header.Get("Content-Type"))
 	qt.Assert(t, qt.IsNil(err))
