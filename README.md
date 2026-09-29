@@ -169,10 +169,12 @@ flowchart TD
 
 | Login method | Permitted signing flows |
 |---|---|
-| `webEid` | `webEid` |
-| `eidScan` | `eidScan` |
+| `webEid` | `webEid`, `cscEidPlugin` |
+| `eidScan` | `eidScan`, `cscEidScan` |
 | `eparakstsMobile` | `eparakstsMobile`, `eparakstsMobileEseal` |
 | *(unknown / empty)* | *(nothing — the binding permits nothing)* |
+
+A card login permits the CSC flow that reads the card the same way the login did — a card reader for Web eID, a phone for eID Scan — and never the other card route.
 
 A mismatch returns `err:signing:bindingMismatch` (403) with a deliberately terse detail — the caller must re-authenticate with the method that matches the flow, and signflow reveals no more. The binding mirrors the same rule the authentication service enforces at login, so the two never diverge; the fine-grained signing credential within a flow is resolved by the provider, not here.
 
