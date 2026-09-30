@@ -63,7 +63,7 @@ The public probes return a plain `{status}` body; everything under `/api/v1` is 
 | `POST /api/v1/document-validations` | `signatures:read` | Validate a signed document ON DEMAND (an uploaded already-signed file, or any signed head) → the normalized answer, returned without persisting anything (the durable answer stays the one recorded at signing) |
 | `POST /api/v1/archive-timestamps` | `signatures:write` | Refresh a signed document with a qualified archive timestamp (B-LT → B-LTA): fetch the signed head on the user's behalf, have the provider embed an `ARCHIVE_TIMESTAMP`, store the archived form back in place (same document id). `{documentId, authCertificate}` — the auth certificate is the signed-in user's, relayed to the provider so the timestamp request is made in the acting user's name |
 
-Signing **flows** (`flow`): `webEid`, `eidScan`, `eparakstsMobile`, `eparakstsMobileEseal`, `csc`. Signature **formats** (`sigFormat`): `XAdES`, `PAdES`. The in-browser `webEid` flow additionally requires the card's `signingCertificate` + `authCertificate` (public certificates, request-scoped — never persisted or logged); the redirect flows carry `postAuthRedirect` / `authErrorRedirect` return URLs with a `{jobId}` placeholder, and may carry the caller's login-captured identity (`signIdentityId` + the certificates, plus `sealId` picking which seal signs) — all pass-throughs to the provider, which then skips its own identity resolution; absent, the provider resolves identities itself.
+Signing **flows** (`flow`): `webEid`, `eidScan`, `eparakstsMobile`, `eparakstsMobileEseal`, `cscEidScan`, `cscEidPlugin`. Signature **formats** (`sigFormat`): `XAdES`, `PAdES`. The in-browser `webEid` flow additionally requires the card's `signingCertificate` + `authCertificate` (public certificates, request-scoped — never persisted or logged); the redirect flows carry `postAuthRedirect` / `authErrorRedirect` return URLs with a `{jobId}` placeholder, and may carry the caller's login-captured identity (`signIdentityId` + the certificates, plus `sealId` picking which seal signs) — all pass-throughs to the provider, which then skips its own identity resolution; absent, the provider resolves identities itself.
 
 ---
 
@@ -111,7 +111,7 @@ flowchart TB
 
 ### One signing, end to end
 
-A Web eID (in-browser) hash-only XAdES signing, from begin to validated record. A redirect flow (`eparakstsMobile` / `csc`) replaces the client-signature step with an `authorizeUrl` the user visits; a PAdES signing swaps the byte-free `Complete` for a byte-conduit `StoreSignedDocument`.
+A Web eID (in-browser) hash-only XAdES signing, from begin to validated record. A redirect flow (`eparakstsMobile` / `cscEidScan` / `cscEidPlugin`) replaces the client-signature step with an `authorizeUrl` the user visits; a PAdES signing swaps the byte-free `Complete` for a byte-conduit `StoreSignedDocument`.
 
 ```mermaid
 sequenceDiagram
@@ -169,10 +169,12 @@ flowchart TD
 
 | Login method | Permitted signing flows |
 |---|---|
-| `webEid` | `webEid` |
-| `eidScan` | `eidScan` |
-| `eparakstsMobile` | `eparakstsMobile`, `eparakstsMobileEseal`, `csc` |
+| `webEid` | `webEid`, `cscEidPlugin` |
+| `eidScan` | `eidScan`, `cscEidScan` |
+| `eparakstsMobile` | `eparakstsMobile`, `eparakstsMobileEseal` |
 | *(unknown / empty)* | *(nothing — the binding permits nothing)* |
+
+A card login permits the CSC flow that reads the card the same way the login did — a card reader for Web eID, a phone for eID Scan — and never the other card route.
 
 A mismatch returns `err:signing:bindingMismatch` (403) with a deliberately terse detail — the caller must re-authenticate with the method that matches the flow, and signflow reveals no more. The binding mirrors the same rule the authentication service enforces at login, so the two never diverge; the fine-grained signing credential within a flow is resolved by the provider, not here.
 

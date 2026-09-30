@@ -8,16 +8,19 @@ var ErrBindingMismatch = errors.New("orchestrator: login method does not permit 
 
 // permitted maps a login method to the signing flows it may drive. The portal
 // authentication method determines which signing flows a session is allowed to
-// start: a Web eID login signs only via Web eID, an eID Scan login only via eID
-// Scan, and an eParaksts Mobile login may drive its personal cloud signature, the
-// mobile-bound organisation seal, and the CSC flow. This mirrors the same binding
+// start: a card login signs with the card read the way the login read it — a Web
+// eID login via Web eID or the CSC flow through the provider's browser extension,
+// an eID Scan login via eID Scan or the CSC flow read by eID Scan — and an
+// eParaksts Mobile login may drive its personal cloud signature and the
+// mobile-bound organisation seal. The CSC flows authenticate with the eID card only,
+// so no eParaksts Mobile login reaches them. This mirrors the same binding
 // the authentication service enforces at login, so the two never diverge. The
 // fine-grained signing credential within a flow is resolved by the signing
 // service, not here.
 var permitted = map[string][]string{
-	"webEid":          {"webEid"},
-	"eidScan":         {"eidScan"},
-	"eparakstsMobile": {"eparakstsMobile", "eparakstsMobileEseal", "csc"},
+	"webEid":          {"webEid", "cscEidPlugin"},
+	"eidScan":         {"eidScan", "cscEidScan"},
+	"eparakstsMobile": {"eparakstsMobile", "eparakstsMobileEseal"},
 }
 
 // permittedFlows returns the signing flows a login method may drive. An unknown or

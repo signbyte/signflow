@@ -56,12 +56,23 @@ func (e *HTTPError) Error() string {
 // it. A non-2xx status is returned as *HTTPError. contentType is set only when the
 // request carries a body.
 func doJSON(ctx context.Context, d Doer, service, audience, scope, method, url string, reqBody []byte, contentType string, out any) error {
+	return doJSONWithin(ctx, d, 0, service, audience, scope, method, url, reqBody, contentType, out)
+}
+
+// doJSONWithin is doJSON under a per-call ceiling; zero keeps the client's default.
+func doJSONWithin(ctx context.Context, d Doer, timeout time.Duration, service, audience, scope, method, url string, reqBody []byte, contentType string, out any) error {
 	hdr := http.Header{}
 	if contentType != "" {
 		hdr.Set("Content-Type", contentType)
 	}
 
-	resp, err := d.DoService(ctx, audience, scope, method, url, hdr, reqBody)
+	var resp *authclient.BackgroundResponse
+	var err error
+	if timeout > 0 {
+		resp, err = d.DoServiceWithTimeout(ctx, timeout, audience, scope, method, url, hdr, reqBody)
+	} else {
+		resp, err = d.DoService(ctx, audience, scope, method, url, hdr, reqBody)
+	}
 	if err != nil {
 		return fmt.Errorf("%s: %w", service, err)
 	}

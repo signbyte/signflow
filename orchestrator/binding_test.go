@@ -11,9 +11,9 @@ import (
 // TestPermittedFlows pins each login method to the flows it may drive.
 func TestPermittedFlows(t *testing.T) {
 	cases := map[string][]string{
-		"webEid":          {"webEid"},
-		"eidScan":         {"eidScan"},
-		"eparakstsMobile": {"eparakstsMobile", "eparakstsMobileEseal", "csc"},
+		"webEid":          {"webEid", "cscEidPlugin"},
+		"eidScan":         {"eidScan", "cscEidScan"},
+		"eparakstsMobile": {"eparakstsMobile", "eparakstsMobileEseal"},
 		"":                nil,
 		"unknown":         nil,
 	}
@@ -41,14 +41,19 @@ func TestCheckBinding(t *testing.T) {
 	}{
 		{"webEid permits webEid", "webEid", "webEid", false},
 		{"eidScan permits eidScan", "eidScan", "eidScan", false},
+		{"webEid permits the CSC flow through the card reader", "webEid", "cscEidPlugin", false},
+		{"eidScan permits the CSC flow read by eID Scan", "eidScan", "cscEidScan", false},
 		{"eparakstsMobile permits its personal flow", "eparakstsMobile", "eparakstsMobile", false},
 		{"eparakstsMobile permits the eSeal flow", "eparakstsMobile", "eparakstsMobileEseal", false},
-		{"eparakstsMobile permits csc", "eparakstsMobile", "csc", false},
 
 		{"webEid does not permit eidScan", "webEid", "eidScan", true},
 		{"eidScan does not permit webEid", "eidScan", "webEid", true},
+		{"webEid does not permit the eID Scan CSC flow", "webEid", "cscEidScan", true},
+		{"eidScan does not permit the card-reader CSC flow", "eidScan", "cscEidPlugin", true},
 		{"eparakstsMobile does not permit webEid", "eparakstsMobile", "webEid", true},
-		{"webEid does not permit csc", "webEid", "csc", true},
+		{"eparakstsMobile does not permit cscEidScan", "eparakstsMobile", "cscEidScan", true},
+		{"eparakstsMobile does not permit cscEidPlugin", "eparakstsMobile", "cscEidPlugin", true},
+		{"the retired csc is permitted to nobody", "eparakstsMobile", "csc", true},
 
 		{"empty method fails closed", "", "webEid", true},
 		{"unknown method fails closed", "nope", "webEid", true},

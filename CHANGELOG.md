@@ -3,6 +3,40 @@
 Notable changes to this service, newest first, per release. This file is written for whoever
 runs the service or integrates against it.
 
+## v0.2.0
+
+### Changed — starting a signing waits for the signing service up to 90 s
+
+Starting a signing now waits up to **90 s** for the signing service to begin the job, the same ceiling
+validation and archive-timestamping already have; it used to give up after the default 15 s. The provider
+behind the signing service sometimes takes a minute to answer a request of a signing, and the signing
+service then began the job after signflow had already reported a failure. Nothing to configure.
+
+### Changed — each card login may also sign through CSC, reading the card the same way
+
+A Web eID login now permits `cscEidPlugin` besides `webEid`, and an eID Scan login permits `cscEidScan`
+besides `eidScan`: the CSC flow that reads the card the way the login did. Neither crosses over — a Web eID
+login asking for `cscEidScan` (or an eID Scan login asking for `cscEidPlugin`) is refused like any other
+flow its login does not permit (`403 err:signing:bindingMismatch`).
+
+```http
+POST /api/v1/signings        (a session that logged in with Web eID)
+{ "flow": "cscEidPlugin", "documentId": "…", … }
+```
+
+### Changed — the CSC signing flow is two flows
+
+`flow` on a new signing accepts `cscEidScan` (the eID card read by a phone) and `cscEidPlugin` (the card in
+a reader, through the provider's browser extension) in place of `csc`, which is now refused as invalid. An
+eParaksts Mobile login no longer permits either: the CSC flows authenticate with the eID card only.
+
+```http
+POST /api/v1/signings
+{ "flow": "cscEidScan", "documentId": "…", … }
+```
+
+Needs the database migration that knows the two names (the platform database's 2026-09-28 entry).
+
 ## v0.1.1
 
 ### Fixed — a version tag points at the signed image digest again
