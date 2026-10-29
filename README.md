@@ -227,6 +227,7 @@ Standard platform env (`SERVER_URLS`, `SERVICE_NAME`, `ENVIRONMENT`, `LOG_*`, `M
 | `SERVICE_CLIENT_ID` | `svc:signflow` | Outbound service-client id (mints DPoP service tokens) |
 | `SERVICE_CLIENT_SECRET` | — | Outbound service-client secret. Secret: supports the `SERVICE_CLIENT_SECRET_FILE` convention (an explicit env value still overrides it) |
 | `OUTBOUND_ISSUER_URL` | — (⇒ `AUTH_ISSUER_URL`) | In-network token-mint address; the token `iss` stays `AUTH_ISSUER_URL` |
+| `SIGNING_STORE_DSN_FILE` | — | Path of a file holding the `SIGNING_STORE_DSN` value (written by a secrets agent); read when `SIGNING_STORE_DSN` is not set, surrounding whitespace trimmed. |
 | `SIGNING_STORE_DSN` | — (⇒ in-memory) | PostgreSQL DSN; connects as the `EXECUTE`-only `signing_public` role. Empty → in-memory store (dev/test; jobs do not survive restart). Pool size comes from the DSN itself — `pool_max_conns` (pgx reads it and strips it before Postgres sees it; its default is the host's CPU count): set it explicitly to the deployment's connection budget, e.g. `?sslmode=…&pool_max_conns=4&pool_min_conns=1`. |
 | `EIDAS_AUDIT_TOPIC` | `audit.signing` | Broker topic for signflow's lifecycle/validation evidence (shared with the provider so both feed one hash-chain) |
 | `EIDAS_AUDIT_OUTBOX_DIR` | — | When set, audit emission is durable + non-blocking: events spool to this directory and a background drainer publishes them + flushes on shutdown. Unset → synchronous publish (dev) |

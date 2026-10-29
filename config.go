@@ -92,6 +92,8 @@ func (c *Configuration) Bind(_ string, v *viper.Viper) {
 	_ = v.BindEnv("envelope_audience", "ENVELOPE_AUDIENCE")
 
 	// Durable state.
+	// The connection string carries the role's password: SIGNING_STORE_DSN_FILE.
+	loadSecret(v, "signing_store_dsn", "SIGNING_STORE_DSN")
 	_ = v.BindEnv("signing_store_dsn", "SIGNING_STORE_DSN")
 
 	// Outbound service-client identity.
@@ -110,6 +112,9 @@ func (c *Configuration) Bind(_ string, v *viper.Viper) {
 
 // Validate validates the full configuration tree.
 func (c *Configuration) Validate(valid *validation.Validate) error {
+	if err := refuseEmptyFileSecret("SIGNING_STORE_DSN", c.StoreDSN); err != nil {
+		return err
+	}
 	if err := c.BaseConfiguration.Validate(valid); err != nil {
 		return err
 	}
