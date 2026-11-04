@@ -3,6 +3,42 @@
 Notable changes to this service, newest first, per release. This file is written for whoever
 runs the service or integrates against it.
 
+## v0.3.0
+
+A security release that also lets the database connection string be read from a file. A token exchanged on a
+caller's behalf is no longer reused for a different token of the same person, and **the service now builds with Go
+1.27.3**. Nothing about the API or the database changes, and an existing configuration keeps working.
+
+### Security
+
+- **The authentication library (`go-authbyte`, from v0.31.1 on)** caches a token exchanged on a caller's behalf
+  under the caller's own token, not under the person alone, and stops reusing it once that token has expired.
+  Before, a person whose token was renewed with different claims (another organisation, a stronger sign-in) could
+  have this service's onward calls carried for a few minutes by the token exchanged for the earlier one. Nothing to
+  configure; one more exchange per renewed token.
+- **Go 1.27.3** (was 1.27.2), in `go.mod` and as the image's default build toolchain (`ARG GO_VERSION` in the
+  `Dockerfile`). Go 1.27.3 fixes GO-2026-6809 in `crypto/x509`, which code making TLS calls reaches. **Rebuild the
+  image to pick the fix up.**
+
+### Added
+
+- **`SIGNING_STORE_DSN_FILE`.** The database connection string carries the role's password, so it can now be
+  read from a file (for example one a secrets agent writes), as `SERVICE_CLIENT_SECRET` already can.
+  `SIGNING_STORE_DSN`, when set, still wins, so an existing deployment changes nothing. If the file is named but
+  missing or empty, the service refuses to start instead of falling back to the non-durable in-memory store.
+- **The `legacyEid` signing flow:** the eID card in a reader, signed in the person's browser through the eParaksts
+  provider's own plugin rather than Web eID. `POST /api/v1/signings` accepts `"flow":"legacyEid"` and treats it as
+  `webEid`: the card's `signingCertificate` and `authCertificate` are required, and the answer carries the digests
+  the card must sign. A person signed in with the matching `legacyEid` login may choose `legacyEid` or
+  `cscEidPlugin`, never `webEid`; a Web eID login never gets `legacyEid` (`403 err:signing:bindingMismatch`). It
+  needs the database's matching migration, and a signing service that offers the flow.
+
+### Changed
+
+- **Libraries updated:** azugo v0.40.2, go-authbyte v0.32.0, go-platform-kit v1.11.5, `fasthttp` v1.77.0, `go-jose`
+  v4.1.6 and `valkey-go` v1.0.79, with the other dependencies at their current releases. Nothing about the API, the
+  configuration or the database changes.
+
 ## v0.2.1
 
 A security release. **The service now builds with Go 1.27.2**, and its libraries move to their Go

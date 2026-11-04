@@ -63,7 +63,7 @@ The public probes return a plain `{status}` body; everything under `/api/v1` is 
 | `POST /api/v1/document-validations` | `signatures:read` | Validate a signed document ON DEMAND (an uploaded already-signed file, or any signed head) → the normalized answer, returned without persisting anything (the durable answer stays the one recorded at signing) |
 | `POST /api/v1/archive-timestamps` | `signatures:write` | Refresh a signed document with a qualified archive timestamp (B-LT → B-LTA): fetch the signed head on the user's behalf, have the provider embed an `ARCHIVE_TIMESTAMP`, store the archived form back in place (same document id). `{documentId, authCertificate}` — the auth certificate is the signed-in user's, relayed to the provider so the timestamp request is made in the acting user's name |
 
-Signing **flows** (`flow`): `webEid`, `eidScan`, `eparakstsMobile`, `eparakstsMobileEseal`, `cscEidScan`, `cscEidPlugin`. Signature **formats** (`sigFormat`): `XAdES`, `PAdES`. The in-browser `webEid` flow additionally requires the card's `signingCertificate` + `authCertificate` (public certificates, request-scoped — never persisted or logged); the redirect flows carry `postAuthRedirect` / `authErrorRedirect` return URLs with a `{jobId}` placeholder, and may carry the caller's login-captured identity (`signIdentityId` + the certificates, plus `sealId` picking which seal signs) — all pass-throughs to the provider, which then skips its own identity resolution; absent, the provider resolves identities itself.
+Signing **flows** (`flow`): `webEid`, `legacyEid`, `eidScan`, `eparakstsMobile`, `eparakstsMobileEseal`, `cscEidScan`, `cscEidPlugin`. Signature **formats** (`sigFormat`): `XAdES`, `PAdES`. The in-browser flows (`webEid`, and `legacyEid`, the same card signing through the provider's own browser plugin) additionally require the card's `signingCertificate` + `authCertificate` (public certificates, request-scoped — never persisted or logged); the redirect flows carry `postAuthRedirect` / `authErrorRedirect` return URLs with a `{jobId}` placeholder, and may carry the caller's login-captured identity (`signIdentityId` + the certificates, plus `sealId` picking which seal signs) — all pass-throughs to the provider, which then skips its own identity resolution; absent, the provider resolves identities itself.
 
 ---
 
@@ -170,11 +170,12 @@ flowchart TD
 | Login method | Permitted signing flows |
 |---|---|
 | `webEid` | `webEid`, `cscEidPlugin` |
+| `legacyEid` | `legacyEid`, `cscEidPlugin` |
 | `eidScan` | `eidScan`, `cscEidScan` |
 | `eparakstsMobile` | `eparakstsMobile`, `eparakstsMobileEseal` |
 | *(unknown / empty)* | *(nothing — the binding permits nothing)* |
 
-A card login permits the CSC flow that reads the card the same way the login did — a card reader for Web eID, a phone for eID Scan — and never the other card route.
+A card login permits the CSC flow that reads the card the same way the login did — a card reader for Web eID and for the legacy plugin, a phone for eID Scan — and never the other card route; Web eID and the legacy plugin never permit each other's flow, so the two card tools are never on one page.
 
 A mismatch returns `err:signing:bindingMismatch` (403) with a deliberately terse detail — the caller must re-authenticate with the method that matches the flow, and signflow reveals no more. The binding mirrors the same rule the authentication service enforces at login, so the two never diverge; the fine-grained signing credential within a flow is resolved by the provider, not here.
 
@@ -227,6 +228,7 @@ Standard platform env (`SERVER_URLS`, `SERVICE_NAME`, `ENVIRONMENT`, `LOG_*`, `M
 | `SERVICE_CLIENT_ID` | `svc:signflow` | Outbound service-client id (mints DPoP service tokens) |
 | `SERVICE_CLIENT_SECRET` | — | Outbound service-client secret. Secret: supports the `SERVICE_CLIENT_SECRET_FILE` convention (an explicit env value still overrides it) |
 | `OUTBOUND_ISSUER_URL` | — (⇒ `AUTH_ISSUER_URL`) | In-network token-mint address; the token `iss` stays `AUTH_ISSUER_URL` |
+| `SIGNING_STORE_DSN_FILE` | — | Path of a file holding the `SIGNING_STORE_DSN` value (written by a secrets agent); read when `SIGNING_STORE_DSN` is not set, surrounding whitespace trimmed. |
 | `SIGNING_STORE_DSN` | — (⇒ in-memory) | PostgreSQL DSN; connects as the `EXECUTE`-only `signing_public` role. Empty → in-memory store (dev/test; jobs do not survive restart). Pool size comes from the DSN itself — `pool_max_conns` (pgx reads it and strips it before Postgres sees it; its default is the host's CPU count): set it explicitly to the deployment's connection budget, e.g. `?sslmode=…&pool_max_conns=4&pool_min_conns=1`. |
 | `EIDAS_AUDIT_TOPIC` | `audit.signing` | Broker topic for signflow's lifecycle/validation evidence (shared with the provider so both feed one hash-chain) |
 | `EIDAS_AUDIT_OUTBOX_DIR` | — | When set, audit emission is durable + non-blocking: events spool to this directory and a background drainer publishes them + flushes on shutdown. Unset → synchronous publish (dev) |

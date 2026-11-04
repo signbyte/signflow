@@ -6,13 +6,13 @@ import "azugo.io/azugo"
 type createSigningRequest struct {
 	EnvelopeID string `json:"envelopeId" validate:"required"`
 	SlotID     string `json:"slotId" validate:"required"`
-	Flow       string `json:"flow" validate:"required,oneof=webEid eidScan eparakstsMobile eparakstsMobileEseal cscEidScan cscEidPlugin"`
+	Flow       string `json:"flow" validate:"required,oneof=webEid legacyEid eidScan eparakstsMobile eparakstsMobileEseal cscEidScan cscEidPlugin"`
 	SigFormat  string `json:"sigFormat" validate:"required,oneof=PAdES XAdES"`
 	// DocumentID is the document to sign. Until the Envelope/Workflow service can
 	// resolve slot → document, the caller supplies it directly.
 	DocumentID string `json:"documentId" validate:"required"`
 	// SigningCertificate and AuthCertificate carry certificates for the signing
-	// act: the card certificates for the in-browser (webEid) flow — required
+	// act: the card certificates for the in-browser flows (webEid, legacyEid) — required
 	// there — or the caller's login-captured identity certificates for a
 	// redirect flow, letting the provider skip its own identity resolution.
 	// Public certificates — request-scoped, never persisted or logged.
