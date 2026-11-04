@@ -16,9 +16,11 @@ import (
 	"github.com/signbyte/signflow/store"
 )
 
-// flowWebEid is the in-browser card flow: the client reads the card certificates,
-// signflow returns the per-document digests, and the card signs them.
-const flowWebEid = "webEid"
+// inBrowserFlows are the card flows signed in the person's browser: the client
+// reads the card certificates, signflow returns the per-document digests, and the
+// card signs them — through Web eID (webEid) or the provider's own plugin
+// (legacyEid).
+var inBrowserFlows = map[string]bool{"webEid": true, "legacyEid": true}
 
 // createSigning — POST /api/v1/signings: begin signing a slot.
 // {envelopeId, slotId, flow, sigFormat, documentId} → {jobId, state, authorizeUrl?}.
@@ -42,10 +44,10 @@ func (r *router) createSigning(ctx *azugo.Context) {
 	// certificate to compute the digest, the authentication certificate for
 	// finalize. Reject early with a clear error rather than relaying an incomplete
 	// request to the provider.
-	if req.Flow == flowWebEid && (req.SigningCertificate == "" || req.AuthCertificate == "") {
+	if inBrowserFlows[req.Flow] && (req.SigningCertificate == "" || req.AuthCertificate == "") {
 		ctx.Error(pkerrors.NewProblem("err:signing:invalidRequest",
 			pkerrors.WithStatus(fasthttp.StatusBadRequest),
-			pkerrors.WithDetail("signingCertificate and authCertificate are required for the webEid flow")))
+			pkerrors.WithDetail("signingCertificate and authCertificate are required for the "+req.Flow+" flow")))
 
 		return
 	}

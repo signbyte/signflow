@@ -192,9 +192,16 @@ func TestCreateSigningInvalidBody(t *testing.T) {
 	fasthttp.ReleaseResponse(resp)
 }
 
-// A wired createSigning for the in-browser flow returns 201 with the signature
-// algorithm + the per-document digests the card must sign (no authorize URL).
+// A wired createSigning for an in-browser flow returns 201 with the signature
+// algorithm + the per-document digests the card must sign (no authorize URL),
+// for Web eID and for the legacy plugin alike, each under its own login.
 func TestCreateSigningWebEidReturnsDigests(t *testing.T) {
+	for _, flow := range []string{"webEid", "legacyEid"} {
+		t.Run(flow, func(t *testing.T) { createSigningInBrowserReturnsDigests(t, flow) })
+	}
+}
+
+func createSigningInBrowserReturnsDigests(t *testing.T, flow string) {
 	app := appWithConductor(t, &clients.PrepareResult{
 		JobID:         "job-w",
 		State:         "AWAITING_CLIENT_SIGNATURE",
@@ -204,12 +211,12 @@ func TestCreateSigningWebEidReturnsDigests(t *testing.T) {
 	app.Start(t)
 	defer app.Stop()
 
-	body := []byte(`{"envelopeId":"env-1","slotId":"slot-1","flow":"webEid","sigFormat":"XAdES",` +
+	body := []byte(`{"envelopeId":"env-1","slotId":"slot-1","flow":"` + flow + `","sigFormat":"XAdES",` +
 		`"documentId":"doc-1","signingCertificate":"MIIsign","authCertificate":"MIIauth"}`)
 	tc := app.TestClient()
 	resp, err := tc.Post("/api/v1/signings", body,
 		tc.WithHeader("X-Test-Scopes", "signatures:create"),
-		tc.WithHeader("X-Test-Login-Method", "webEid"))
+		tc.WithHeader("X-Test-Login-Method", flow))
 	qt.Assert(t, qt.IsNil(err))
 	qt.Assert(t, qt.Equals(resp.StatusCode(), fasthttp.StatusCreated))
 
@@ -225,11 +232,17 @@ func TestCreateSigningWebEidReturnsDigests(t *testing.T) {
 // createSigning rejects an in-browser request that omits the card certificates with
 // 400 invalid_request, before any provider call.
 func TestCreateSigningWebEidRequiresCerts(t *testing.T) {
+	for _, flow := range []string{"webEid", "legacyEid"} {
+		t.Run(flow, func(t *testing.T) { createSigningInBrowserRequiresCerts(t, flow) })
+	}
+}
+
+func createSigningInBrowserRequiresCerts(t *testing.T, flow string) {
 	app := appWithConductor(t, prepareWithURL("job-9", "AWAITING_CLIENT_SIGNATURE", ""))
 	app.Start(t)
 	defer app.Stop()
 
-	body := []byte(`{"envelopeId":"env-1","slotId":"slot-1","flow":"webEid","sigFormat":"XAdES","documentId":"doc-1"}`)
+	body := []byte(`{"envelopeId":"env-1","slotId":"slot-1","flow":"` + flow + `","sigFormat":"XAdES","documentId":"doc-1"}`)
 	tc := app.TestClient()
 	resp, err := tc.Post("/api/v1/signings", body, tc.WithHeader("X-Test-Scopes", "signatures:create"))
 	qt.Assert(t, qt.IsNil(err))

@@ -12,6 +12,7 @@ import (
 func TestPermittedFlows(t *testing.T) {
 	cases := map[string][]string{
 		"webEid":          {"webEid", "cscEidPlugin"},
+		"legacyEid":       {"legacyEid", "cscEidPlugin"},
 		"eidScan":         {"eidScan", "cscEidScan"},
 		"eparakstsMobile": {"eparakstsMobile", "eparakstsMobileEseal"},
 		"":                nil,
@@ -54,6 +55,16 @@ func TestCheckBinding(t *testing.T) {
 		{"eparakstsMobile does not permit cscEidScan", "eparakstsMobile", "cscEidScan", true},
 		{"eparakstsMobile does not permit cscEidPlugin", "eparakstsMobile", "cscEidPlugin", true},
 		{"the retired csc is permitted to nobody", "eparakstsMobile", "csc", true},
+
+		// The legacy eID login (the card through the provider's own plugin) signs
+		// with that plugin or its CSC flow, and the two card tools never mix.
+		{"legacyEid permits legacyEid", "legacyEid", "legacyEid", false},
+		{"legacyEid permits the card-reader CSC flow", "legacyEid", "cscEidPlugin", false},
+		{"legacyEid does not permit webEid", "legacyEid", "webEid", true},
+		{"webEid does not permit legacyEid", "webEid", "legacyEid", true},
+		{"legacyEid does not permit the eID Scan CSC flow", "legacyEid", "cscEidScan", true},
+		{"eidScan does not permit legacyEid", "eidScan", "legacyEid", true},
+		{"eparakstsMobile does not permit legacyEid", "eparakstsMobile", "legacyEid", true},
 
 		{"empty method fails closed", "", "webEid", true},
 		{"unknown method fails closed", "nope", "webEid", true},

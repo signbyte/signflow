@@ -26,6 +26,12 @@ caller's behalf is no longer reused for a different token of the same person, an
   read from a file (for example one a secrets agent writes), as `SERVICE_CLIENT_SECRET` already can.
   `SIGNING_STORE_DSN`, when set, still wins, so an existing deployment changes nothing. If the file is named but
   missing or empty, the service refuses to start instead of falling back to the non-durable in-memory store.
+- **The `legacyEid` signing flow:** the eID card in a reader, signed in the person's browser through the eParaksts
+  provider's own plugin rather than Web eID. `POST /api/v1/signings` accepts `"flow":"legacyEid"` and treats it as
+  `webEid`: the card's `signingCertificate` and `authCertificate` are required, and the answer carries the digests
+  the card must sign. A person signed in with the matching `legacyEid` login may choose `legacyEid` or
+  `cscEidPlugin`, never `webEid`; a Web eID login never gets `legacyEid` (`403 err:signing:bindingMismatch`). It
+  needs the database's matching migration, and a signing service that offers the flow.
 
 ### Changed
 
