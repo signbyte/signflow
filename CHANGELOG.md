@@ -3,6 +3,18 @@
 Notable changes to this service, newest first, per release. This file is written for whoever
 runs the service or integrates against it.
 
+## v0.4.0
+
+The service now builds with **Go 1.27.4** (`go.mod` and the image's `ARG GO_VERSION`) and runs on azugo v0.50.2,
+with go-authbyte v0.46.0, go-eidas-audit v1.3.0, go-platform-kit v1.13.0 and go-validation-answer v1.1.5. **Rebuild
+the image to pick it up.** Nothing about the configuration or the database changes.
+
+### Changed
+
+- **Request bodies are held to the framework's limit:** a request body above 4 MiB is refused with `413`. Every
+  route of this service takes a small JSON body (identifiers, certificates, signature values), so no route needed a
+  larger limit and none was set.
+
 ## v0.3.0
 
 A security release that also lets the database connection string be read from a file. A token exchanged on a
