@@ -192,6 +192,31 @@ func TestCreateSigningInvalidBody(t *testing.T) {
 	fasthttp.ReleaseResponse(resp)
 }
 
+// A request body above the framework's 4 MiB default is refused with 413 before
+// any of it is handled; a body just under it is read and answered by validation.
+func TestCreateSigningBodyOverFrameworkLimit(t *testing.T) {
+	app := appWithConductor(t, prepareWithURL("job-9", "AWAITING_AUTHORIZATION", ""))
+	app.Start(t)
+	defer app.Stop()
+
+	tc := app.TestClient()
+	pad := func(n int) []byte {
+		return []byte(`{"flow":"eparakstsMobile","pad":"` + strings.Repeat("a", n) + `"}`)
+	}
+
+	const limit = 4 << 20
+
+	resp, err := tc.Post("/api/v1/signings", pad(limit+1024), tc.WithHeader("X-Test-Scopes", "signatures:create"))
+	qt.Assert(t, qt.IsNil(err))
+	qt.Assert(t, qt.Equals(resp.StatusCode(), fasthttp.StatusRequestEntityTooLarge))
+	fasthttp.ReleaseResponse(resp)
+
+	resp, err = tc.Post("/api/v1/signings", pad(limit-1024), tc.WithHeader("X-Test-Scopes", "signatures:create"))
+	qt.Assert(t, qt.IsNil(err))
+	qt.Assert(t, qt.Equals(resp.StatusCode(), fasthttp.StatusUnprocessableEntity))
+	fasthttp.ReleaseResponse(resp)
+}
+
 // A wired createSigning for an in-browser flow returns 201 with the signature
 // algorithm + the per-document digests the card must sign (no authorize URL),
 // for Web eID and for the legacy plugin alike, each under its own login.
